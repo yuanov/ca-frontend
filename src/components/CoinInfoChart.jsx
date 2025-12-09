@@ -16,10 +16,29 @@ async function fetchData(id) {
   const json = await resp.json();
   if (!json?.dates || !json?.volume) throw new Error("Некорректный ответ API");
 
-  return json.dates.map((date, index) => ({
-    x: date,
-    y: Number(json.volume[index]),
-  }));
+    const volumes = [];
+    const marketCaps = [];
+    const tokenTurnovers = [];
+    const prices = [];
+    for (let i = 0; i < json.dates.length; i++) {
+        volumes.push({
+            x: json.dates[i],
+            y: Number(json['volume'][i])
+        });
+        marketCaps.push({
+            x: json.dates[i],
+            y: Number(json['marketCap'][i])
+        });
+        tokenTurnovers.push({
+            x: json.dates[i],
+            y: Number(json['tokenTurnover'][i])
+        });
+        prices.push({
+            x: json.dates[i],
+            y: Number(json['price'][i])
+        });
+    }
+    return {volumes, marketCaps, tokenTurnovers, prices};
 }
 
 function plotData(data) {
@@ -49,7 +68,7 @@ export default function CoinInfoChart({ id, width = 720, height = 360 }) {
         setLoading(true);
         setError(null);
         const pts = await fetchData(id);
-        setData(pts);
+        setData(pts.volumes);
       } catch (e) {
         setError(e.message || String(e));
       } finally {
