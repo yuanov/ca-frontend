@@ -15,6 +15,27 @@ async function fetchData(source, id) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const json = await resp.json();
+
+  // Парсинг для индикаторов: берём из полей ema14 и macd
+  if (source === "indicators") {
+    if (!json?.dates || !json?.ema14 || !json?.macd) {
+      throw new Error("Некорректный ответ API (ожидались поля dates, ema14, macd)");
+    }
+    const ema14 = [];
+    const macd = [];
+    const price = [];
+    for (let i = 0; i < json.dates.length; i++) {
+      const dateOnly = String(json.dates[i]).split("T")[0];
+      ema14.push({ x: dateOnly, y: Number(json["ema14"][i]) });
+      macd.push({ x: dateOnly, y: Number(json["macd"][i]) });
+      if (Array.isArray(json.price)) {
+        price.push({ x: dateOnly, y: Number(json["price"][i]) });
+      }
+    }
+    return { ema14, macd, price };
+  }
+
+  // Парсинг для монет (прежнее поведение)
   if (!json?.dates || !json?.volume) throw new Error("Некорректный ответ API");
 
   const volumes = [];
@@ -70,6 +91,8 @@ export default function CoinInfoChart({
   const [capData, setCapData] = useState([]);
   const [turnData, setTurnData] = useState([]);
   const [priceData, setPriceData] = useState([]);
+  const [ema14Data, setEma14Data] = useState([]);
+  const [macdData, setMacdData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -79,10 +102,23 @@ export default function CoinInfoChart({
         setLoading(true);
         setError(null);
         const pts = await fetchData(source, id);
-        setVolData(pts.volumes);
-        setCapData(pts.marketCaps);
-        setTurnData(pts.tokenTurnovers);
-        setPriceData(pts.prices);
+        if (source === "indicators") {
+          setEma14Data(pts.ema14 || []);
+          setMacdData(pts.macd || []);
+          setPriceData(pts.price || []);
+          // очищаем неиспользуемые наборы
+          setVolData([]);
+          setCapData([]);
+          setTurnData([]);
+        } else {
+          setVolData(pts.volumes);
+          setCapData(pts.marketCaps);
+          setTurnData(pts.tokenTurnovers);
+          setPriceData(pts.prices);
+          // очищаем индикаторы
+          setEma14Data([]);
+          setMacdData([]);
+        }
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -99,11 +135,17 @@ export default function CoinInfoChart({
     () => plotData(priceData),
     [priceData],
   );
+  const [yMinEma, yMaxEma] = useMemo(() => plotData(ema14Data), [ema14Data]);
+  const [yMinMacd, yMaxMacd] = useMemo(() => plotData(macdData), [macdData]);
 
   return (
     <div
       role="img"
-      aria-label="Графики: объем, капитализация, оборот и цена"
+      aria-label={
+        source === "indicators"
+          ? "Графики: EMA14 и MACD"
+          : "Графики: объем, капитализация, оборот и цена"
+      }
       style={{ width, height }}
     >
       {loading && <div style={{ padding: 12 }}>Загрузка данных…</div>}
@@ -112,7 +154,7 @@ export default function CoinInfoChart({
           Ошибка загрузки: {error}
         </div>
       )}
-      {!loading && !error && (
+      {!loading && !error && source !== "indicators" && (
         <div
           style={{
             display: "flex",
@@ -336,6 +378,126 @@ export default function CoinInfoChart({
                       Number(value).toFixed(4),
                       name === "y" ? "курс" : name,
                     ]}
+                    labelFormatter={(lbl) => `Дата: ${lbl}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="y"
+                    stroke="#ef4444"
+                    dot={false}
+                    strokeWidth={2.5}
+                  />
+                </RLineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+      {!loading && !error && source === "indicators" && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+            aria-label="График EMA 14"
+          >
+            {showLabels && (
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#0ea5e9",
+                  padding: "2px 4px",
+                }}
+              >
+                EMA 14
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RLineChart
+                  data={ema14Data}
+                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="x"
+                    type="category"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(v) => v.slice(5)}
+                  />
+                  <YAxis
+                    type="number"
+                    domain={[yMinEma, yMaxEma]}
+                    tickFormatter={(v) => Number(v.toFixed(2))}
+                  />
+                  <Tooltip
+                    formatter={(value) => [Number(value).toFixed(4), "EMA14"]}
+                    labelFormatter={(lbl) => `Дата: ${lbl}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="y"
+                    stroke="#0ea5e9"
+                    dot={false}
+                    strokeWidth={2.5}
+                  />
+                </RLineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+            aria-label="График MACD"
+          >
+            {showLabels && (
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#ef4444",
+                  padding: "2px 4px",
+                }}
+              >
+                MACD
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RLineChart
+                  data={macdData}
+                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="x"
+                    type="category"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(v) => v.slice(5)}
+                  />
+                  <YAxis
+                    type="number"
+                    domain={[yMinMacd, yMaxMacd]}
+                    tickFormatter={(v) => Number(v.toFixed(2))}
+                  />
+                  <Tooltip
+                    formatter={(value) => [Number(value).toFixed(4), "MACD"]}
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
                   <Line
