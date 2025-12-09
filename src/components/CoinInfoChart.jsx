@@ -21,20 +21,21 @@ async function fetchData(id) {
     const tokenTurnovers = [];
     const prices = [];
     for (let i = 0; i < json.dates.length; i++) {
+        const dateOnly = json.dates[i].split('T')[0];
         volumes.push({
-            x: json.dates[i],
+            x: dateOnly,
             y: Number(json['volume'][i])
         });
         marketCaps.push({
-            x: json.dates[i],
+            x: dateOnly,
             y: Number(json['marketCap'][i])
         });
         tokenTurnovers.push({
-            x: json.dates[i],
+            x: dateOnly,
             y: Number(json['tokenTurnover'][i])
         });
         prices.push({
-            x: json.dates[i],
+            x: dateOnly,
             y: Number(json['price'][i])
         });
     }
