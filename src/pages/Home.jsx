@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import CoinInfoChart from "../components/CoinInfoChart.jsx";
 
-export default function Home() {
+export default function Home({ navigate }) {
   const [pendingId, setPendingId] = useState("22691");
   const [coinId, setCoinId] = useState(22691);
   return (
@@ -33,6 +33,13 @@ export default function Home() {
         <span className="caption" style={{ marginLeft: 8 }}>
           Данные с локального сервера (localhost:3000)
         </span>
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => navigate && navigate("details")}
+          style={{ padding: "6px 10px", cursor: "pointer" }}
+        >
+          Перейти на отдельную страницу
+        </button>
       </div>
       <CoinInfoChart id={coinId} />
     </div>
