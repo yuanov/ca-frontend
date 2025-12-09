@@ -57,7 +57,7 @@ function plotData(data) {
   return [min - pad, max + pad];
 }
 
-export default function CoinInfoChart({ id, width = 720, height = 800 }) {
+export default function CoinInfoChart({ id, width = 720, height = 800, showLabels = true }) {
   const [volData, setVolData] = useState([]);
   const [capData, setCapData] = useState([]);
   const [turnData, setTurnData] = useState([]);
@@ -99,7 +99,11 @@ export default function CoinInfoChart({ id, width = 720, height = 800 }) {
       )}
       {!loading && !error && (
         <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
-          <div style={{ flex: 1, minHeight: 0 }} aria-label="График объема">
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }} aria-label="График объема">
+            {showLabels && (
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#4f46e5", padding: "2px 4px" }}>Объем</div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RLineChart data={volData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -112,8 +116,13 @@ export default function CoinInfoChart({ id, width = 720, height = 800 }) {
                 <Line type="monotone" dataKey="y" stroke="#4f46e5" dot={false} strokeWidth={2.5} />
               </RLineChart>
             </ResponsiveContainer>
+            </div>
           </div>
-          <div style={{ flex: 1, minHeight: 0 }} aria-label="График рыночной капитализации">
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }} aria-label="График рыночной капитализации">
+            {showLabels && (
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#16a34a", padding: "2px 4px" }}>Рыночная капитализация</div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RLineChart data={capData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -126,8 +135,13 @@ export default function CoinInfoChart({ id, width = 720, height = 800 }) {
                 <Line type="monotone" dataKey="y" stroke="#16a34a" dot={false} strokeWidth={2.5} />
               </RLineChart>
             </ResponsiveContainer>
+            </div>
           </div>
-          <div style={{ flex: 1, minHeight: 0 }} aria-label="График оборачиваемости токена">
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }} aria-label="График оборачиваемости токена">
+            {showLabels && (
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#f59e0b", padding: "2px 4px" }}>Оборачиваемость токена</div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RLineChart data={turnData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -140,8 +154,13 @@ export default function CoinInfoChart({ id, width = 720, height = 800 }) {
                 <Line type="monotone" dataKey="y" stroke="#f59e0b" dot={false} strokeWidth={2.5} />
               </RLineChart>
             </ResponsiveContainer>
+            </div>
           </div>
-          <div style={{ flex: 1, minHeight: 0 }} aria-label="График цены">
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }} aria-label="График цены">
+            {showLabels && (
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", padding: "2px 4px" }}>Цена</div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RLineChart data={priceData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -154,6 +173,7 @@ export default function CoinInfoChart({ id, width = 720, height = 800 }) {
                 <Line type="monotone" dataKey="y" stroke="#ef4444" dot={false} strokeWidth={2.5} />
               </RLineChart>
             </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
