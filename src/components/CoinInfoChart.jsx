@@ -57,7 +57,7 @@ function plotData(data) {
   return [min - pad, max + pad];
 }
 
-export default function CoinInfoChart({ id, width = 720, height = 360 }) {
+export default function CoinInfoChart({ id, width = 720, height = 800 }) {
   const [volData, setVolData] = useState([]);
   const [capData, setCapData] = useState([]);
   const [turnData, setTurnData] = useState([]);
