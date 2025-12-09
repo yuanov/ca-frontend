@@ -6,7 +6,14 @@ export default function Home({ navigate }) {
   const [coinId, setCoinId] = useState(22691);
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
         <label htmlFor="coin-id-input">ID монеты:</label>
         <input
           id="coin-id-input"
