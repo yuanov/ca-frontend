@@ -45,7 +45,7 @@ export default function Home({ navigate }) {
           onClick={() => navigate && navigate("details")}
           style={{ padding: "6px 10px", cursor: "pointer" }}
         >
-          Перейти на отдельную страницу
+            Перейти на страницу Volume
         </button>
         <button
           onClick={() => navigate && navigate("mcap")}
