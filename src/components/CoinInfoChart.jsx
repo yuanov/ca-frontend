@@ -9,6 +9,18 @@ import {
   YAxis,
 } from "recharts";
 
+// Helper: align raw values array to dates by left-padding with nulls
+function alignToDates(datesOnly, values) {
+  const total = datesOnly.length;
+  const arr = Array.isArray(values) ? values : [];
+  const pad = Math.max(0, total - arr.length);
+  const aligned = Array(pad).fill(null).concat(arr).slice(0, total);
+  return datesOnly.map((x, i) => {
+    const v = aligned[i];
+    return { x, y: v == null ? null : Number(v) };
+  });
+}
+
 async function fetchData(source, id) {
   const url = `http://localhost:3000/${source}/${id}`;
   console.log(url);
@@ -18,20 +30,13 @@ async function fetchData(source, id) {
 
   // Парсинг для индикаторов: берём из полей ema14 и macd
   if (source === "indicators") {
-    if (!json?.dates || !json?.ema14 || !json?.macd) {
-      throw new Error("Некорректный ответ API (ожидались поля dates, ema14, macd)");
+    if (!json?.dates) {
+      throw new Error("Некорректный ответ API (ожидалось поле dates)");
     }
-    const ema14 = [];
-    const macd = [];
-    const price = [];
-    for (let i = 0; i < json.dates.length; i++) {
-      const dateOnly = String(json.dates[i]).split("T")[0];
-      ema14.push({ x: dateOnly, y: Number(json["ema14"][i]) });
-      macd.push({ x: dateOnly, y: Number(json["macd"][i]) });
-      if (Array.isArray(json.price)) {
-        price.push({ x: dateOnly, y: Number(json["price"][i]) });
-      }
-    }
+    const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
+    const ema14 = alignToDates(datesOnly, json.ema14);
+    const macd = alignToDates(datesOnly, json.macd);
+    const price = Array.isArray(json.price) ? alignToDates(datesOnly, json.price) : [];
     return { ema14, macd, price };
   }
 
@@ -68,8 +73,11 @@ function plotData(data) {
   let min = Infinity,
     max = -Infinity;
   for (const p of data) {
-    if (p.y < min) min = p.y;
-    if (p.y > max) max = p.y;
+    const v = p?.y;
+    if (typeof v === "number" && isFinite(v)) {
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
   }
   if (!isFinite(min) || !isFinite(max)) return [0, 1];
   if (min === max) {

@@ -47,6 +47,18 @@ export default function Home({ navigate }) {
         >
           Перейти на отдельную страницу
         </button>
+        <button
+          onClick={() => navigate && navigate("mcap")}
+          style={{ padding: "6px 10px", cursor: "pointer" }}
+        >
+          Перейти на страницу MCAP
+        </button>
+        <button
+          onClick={() => navigate && navigate("token-turnover")}
+          style={{ padding: "6px 10px", cursor: "pointer" }}
+        >
+          Перейти на страницу Token Turnover
+        </button>
       </div>
       <CoinInfoChart id={coinId} />
     </div>

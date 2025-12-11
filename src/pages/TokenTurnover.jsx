@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import VolumeIndicatorChart from "../components/VolumeIndicatorChart.jsx";
+import TokenTurnoverIndicatorChart from "../components/TokenTurnoverIndicatorChart.jsx";
 
-export default function Details({ navigate }) {
+export default function TokenTurnover({ navigate }) {
   const [pendingId, setPendingId] = useState("22691");
   const [indicatorId, setIndicatorId] = useState(22691);
   return (
@@ -45,11 +45,11 @@ export default function Details({ navigate }) {
           Показать
         </button>
         <span className="caption" style={{ marginLeft: 8 }}>
-          Данные с локального сервера (localhost:3000/indicators)
+          Данные с локального сервера (localhost:3000/indicators/token-turnover)
         </span>
       </div>
-      <h2 style={{ margin: "8px 0" }}>Индикаторы</h2>
-      <VolumeIndicatorChart id={indicatorId} />
+      <h2 style={{ margin: "8px 0" }}>Token Turnover</h2>
+      <TokenTurnoverIndicatorChart id={indicatorId} />
     </div>
   );
 }
