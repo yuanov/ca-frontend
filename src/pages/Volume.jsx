@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import VolumeIndicatorChart from "../components/VolumeIndicatorChart.jsx";
+import SignalsChart from "../components/SignalsChart.jsx";
 
-export default function Details({ navigate }) {
+export default function Volume({ navigate }) {
   const [pendingId, setPendingId] = useState("22691");
   const [indicatorId, setIndicatorId] = useState(22691);
   return (
@@ -50,6 +51,9 @@ export default function Details({ navigate }) {
       </div>
       <h2 style={{ margin: "8px 0" }}>Индикаторы</h2>
       <VolumeIndicatorChart id={indicatorId} />
+
+      <h2 style={{ margin: "16px 0 8px" }}>Сигналы</h2>
+      <SignalsChart id={indicatorId} metric="volume" height={400} />
     </div>
   );
 }

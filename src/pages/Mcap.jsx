@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import McapIndicatorChart from "../components/McapIndicatorChart.jsx";
+import SignalsChart from "../components/SignalsChart.jsx";
 
 export default function Mcap({ navigate }) {
   const [pendingId, setPendingId] = useState("22691");
@@ -50,6 +51,9 @@ export default function Mcap({ navigate }) {
       </div>
       <h2 style={{ margin: "8px 0" }}>Индикаторы MCAP</h2>
       <McapIndicatorChart id={indicatorId} />
+
+      <h2 style={{ margin: "16px 0 8px" }}>Сигналы</h2>
+      <SignalsChart id={indicatorId} metric="mcap" height={400} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import TokenTurnoverIndicatorChart from "../components/TokenTurnoverIndicatorChart.jsx";
+import SignalsChart from "../components/SignalsChart.jsx";
 
 export default function TokenTurnover({ navigate }) {
   const [pendingId, setPendingId] = useState("22691");
@@ -50,6 +51,9 @@ export default function TokenTurnover({ navigate }) {
       </div>
       <h2 style={{ margin: "8px 0" }}>Token Turnover</h2>
       <TokenTurnoverIndicatorChart id={indicatorId} />
+
+      <h2 style={{ margin: "16px 0 8px" }}>Сигналы</h2>
+      <SignalsChart id={indicatorId} metric="token-turnover" height={400} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Home from "./pages/Home.jsx";
-import Details from "./pages/Details.jsx";
+import Volume from "./pages/Volume.jsx";
 import Mcap from "./pages/Mcap.jsx";
 import TokenTurnover from "./pages/TokenTurnover.jsx";
 
@@ -12,7 +12,7 @@ export default function App() {
   };
 
   if (route === "details") {
-    return <Details navigate={navigate} />;
+    return <Volume navigate={navigate} />;
   }
   if (route === "mcap") {
     return <Mcap navigate={navigate} />;
