@@ -133,7 +133,14 @@ export default function SignalsChart({
     const { cx, cy, payload } = props;
     if (!payload || !payload.signal) return null;
     return (
-      <circle cx={cx} cy={cy} r={4} stroke="#ef4444" fill="#ef4444" />
+      <circle
+        key={`sig-${props.index ?? payload?.x ?? cx}`}
+        cx={cx}
+        cy={cy}
+        r={4}
+        stroke="#ef4444"
+        fill="#ef4444"
+      />
     );
   };
 
