@@ -101,7 +101,6 @@ export default function SignalsChart({
             .concat(arr)
             .slice(0, total);
         }
-
         // Build combined rows with all triggered signals on each date
         const combined = base.map((row, i) => {
           const triggered = [];

@@ -23,7 +23,6 @@ function alignToDates(datesOnly, values) {
 
 async function fetchData(source, id) {
   const url = `http://localhost:3000/${source}/${id}`;
-  console.log(url);
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const json = await resp.json();
