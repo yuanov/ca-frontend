@@ -41,7 +41,7 @@ tmp/
 temp/
 
 # Editors/IDEs
-.idea/
+#.idea/
 .vscode/
 
 # OS-specific
