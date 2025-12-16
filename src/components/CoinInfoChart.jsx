@@ -9,17 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-// Helper: align raw values array to dates by left-padding with nulls
-function alignToDates(datesOnly, values) {
-  const total = datesOnly.length;
-  const arr = Array.isArray(values) ? values : [];
-  const pad = Math.max(0, total - arr.length);
-  const aligned = Array(pad).fill(null).concat(arr).slice(0, total);
-  return datesOnly.map((x, i) => {
-    const v = aligned[i];
-    return { x, y: v == null ? null : Number(v) };
-  });
-}
+// Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
 async function fetchData(source, id) {
   const url = `http://localhost:3000/${source}/${id}`;
@@ -33,9 +23,11 @@ async function fetchData(source, id) {
       throw new Error("Некорректный ответ API (ожидалось поле dates)");
     }
     const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
-    const ema14 = alignToDates(datesOnly, json.ema14);
-    const macd = alignToDates(datesOnly, json.macd);
-    const price = Array.isArray(json.price) ? alignToDates(datesOnly, json.price) : [];
+    const ema14 = datesOnly.map((x, i) => ({ x, y: Number(json.ema14?.[i]) }));
+    const macd = datesOnly.map((x, i) => ({ x, y: Number(json.macd?.[i]) }));
+    const price = Array.isArray(json.price)
+      ? datesOnly.map((x, i) => ({ x, y: Number(json.price?.[i]) }))
+      : [];
     return { ema14, macd, price };
   }
 

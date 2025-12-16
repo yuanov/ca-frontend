@@ -9,17 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-// Align array of raw values to provided dates by left-padding nulls
-function alignToDates(datesOnly, values) {
-  const total = datesOnly.length;
-  const arr = Array.isArray(values) ? values : [];
-  const pad = Math.max(0, total - arr.length);
-  const aligned = Array(pad).fill(null).concat(arr).slice(0, total);
-  return datesOnly.map((x, i) => {
-    const v = aligned[i];
-    return { x, y: v == null ? null : Number(v) };
-  });
-}
+// Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
 function plotData(data) {
   let min = Infinity,
@@ -86,26 +76,16 @@ export default function SignalsChart({
         const datesOnly = coins.dates.map((d) => String(d).split("T")[0]);
         const coinsKey = metricToCoinsKey[metric] || metric;
         const baseValues = coins[coinsKey];
-        const base = alignToDates(datesOnly, baseValues);
+        const base = datesOnly.map((x, i) => ({ x, y: Number(baseValues?.[i]) }));
 
-        // Collect all signal keys (non-"dates") and align each to base length
+        // Collect all signal keys (non-"dates") без выравнивания — размеры совпадают
         const sigKeys = Object.keys(sig).filter((k) => k !== "dates");
-        const total = datesOnly.length;
-
-        const alignedByKey = {};
-        for (const key of sigKeys) {
-          const arr = Array.isArray(sig[key]) ? sig[key] : [];
-          const pad = Math.max(0, total - arr.length);
-          alignedByKey[key] = Array(pad)
-            .fill(null)
-            .concat(arr)
-            .slice(0, total);
-        }
+        const byKey = sig;
         // Build combined rows with all triggered signals on each date
         const combined = base.map((row, i) => {
           const triggered = [];
           for (const key of sigKeys) {
-            if (alignedByKey[key]?.[i] === true) triggered.push(key);
+            if (byKey[key]?.[i] === true) triggered.push(key);
           }
           return {
             x: row.x,

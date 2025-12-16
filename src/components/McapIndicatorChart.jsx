@@ -9,17 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-// Helper: align array of raw values to dates by left-padding nulls
-function alignToDates(datesOnly, values) {
-  const total = datesOnly.length;
-  const arr = Array.isArray(values) ? values : [];
-  const pad = Math.max(0, total - arr.length);
-  const aligned = Array(pad).fill(null).concat(arr).slice(0, total);
-  return datesOnly.map((x, i) => {
-    const v = aligned[i];
-    return { x, y: v == null ? null : Number(v) };
-  });
-}
+// Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
 // Fetch MCAP indicators data (EMA7/14/21, MACD, Sigma, Histogram, RSI14) for a given id
 async function fetchIndicatorData(id) {
@@ -34,13 +24,13 @@ async function fetchIndicatorData(id) {
 
   const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
 
-  const ema7 = alignToDates(datesOnly, json.ema7);
-  const ema14 = alignToDates(datesOnly, json.ema14);
-  const ema21 = alignToDates(datesOnly, json.ema21);
-  const macd = alignToDates(datesOnly, json.macd);
-  const sigma = alignToDates(datesOnly, json.sigma);
-  const histogram = alignToDates(datesOnly, json.histogram);
-  const rsi14 = alignToDates(datesOnly, json.rsi14);
+  const ema7 = datesOnly.map((x, i) => ({ x, y: Number(json.ema7?.[i]) }));
+  const ema14 = datesOnly.map((x, i) => ({ x, y: Number(json.ema14?.[i]) }));
+  const ema21 = datesOnly.map((x, i) => ({ x, y: Number(json.ema21?.[i]) }));
+  const macd = datesOnly.map((x, i) => ({ x, y: Number(json.macd?.[i]) }));
+  const sigma = datesOnly.map((x, i) => ({ x, y: Number(json.sigma?.[i]) }));
+  const histogram = datesOnly.map((x, i) => ({ x, y: Number(json.histogram?.[i]) }));
+  const rsi14 = datesOnly.map((x, i) => ({ x, y: Number(json.rsi14?.[i]) }));
 
   return { ema7, ema14, ema21, macd, sigma, histogram, rsi14 };
 }

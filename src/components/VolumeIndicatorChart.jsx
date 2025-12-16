@@ -9,17 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-// Helper: align array of raw values to dates by left-padding nulls
-function alignToDates(datesOnly, values) {
-  const total = datesOnly.length;
-  const arr = Array.isArray(values) ? values : [];
-  const pad = Math.max(0, total - arr.length);
-  const aligned = Array(pad).fill(null).concat(arr).slice(0, total);
-  return datesOnly.map((x, i) => {
-    const v = aligned[i];
-    return { x, y: v == null ? null : Number(v) };
-  });
-}
+// Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
 // Fetch indicators data for Volume (ema7, ema21, roc14, zscore14) for a given id
 async function fetchIndicatorData(id) {
@@ -34,10 +24,10 @@ async function fetchIndicatorData(id) {
 
   const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
 
-  const ema7 = alignToDates(datesOnly, json.ema7);
-  const ema21 = alignToDates(datesOnly, json.ema21);
-  const roc14 = alignToDates(datesOnly, json.roc14);
-  const zscore14 = alignToDates(datesOnly, json.zscore14);
+  const ema7 = datesOnly.map((x, i) => ({ x, y: Number(json.ema7?.[i]) }));
+  const ema21 = datesOnly.map((x, i) => ({ x, y: Number(json.ema21?.[i]) }));
+  const roc14 = datesOnly.map((x, i) => ({ x, y: Number(json.roc14?.[i]) }));
+  const zscore14 = datesOnly.map((x, i) => ({ x, y: Number(json.zscore14?.[i]) }));
 
   return { ema7, ema21, roc14, zscore14 };
 }
