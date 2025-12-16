@@ -1,2 +1,52 @@
-/node_modules
-/.idea
+# Node / general
+node_modules/
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.tgz
+
+# Build output
+dist/
+build/
+
+# Vite caches
+node_modules/.vite
+.vite/
+
+# Coverage
+coverage/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Caches
+.cache/
+.parcel-cache/
+.eslintcache
+.turbo/
+.npm/
+tmp/
+temp/
+
+# Editors/IDEs
+.idea/
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
