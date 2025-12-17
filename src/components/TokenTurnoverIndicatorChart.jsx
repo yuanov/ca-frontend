@@ -11,7 +11,7 @@ import {
 
 // Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
-// Fetch Token Turnover indicators data (EMA7/14/21, MACD, Sigma, Histogram, RSI14) for a given id
+// Fetch Token Turnover indicators data (ema7, ema21, roc14, zscore14) for a given id
 async function fetchIndicatorData(id) {
   const url = `http://localhost:3000/indicators/token-turnover/${id}`;
   const resp = await fetch(url);
@@ -25,14 +25,11 @@ async function fetchIndicatorData(id) {
   const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
 
   const ema7 = datesOnly.map((x, i) => ({ x, y: Number(json.ema7?.[i]) }));
-  const ema14 = datesOnly.map((x, i) => ({ x, y: Number(json.ema14?.[i]) }));
   const ema21 = datesOnly.map((x, i) => ({ x, y: Number(json.ema21?.[i]) }));
-  const macd = datesOnly.map((x, i) => ({ x, y: Number(json.macd?.[i]) }));
-  const sigma = datesOnly.map((x, i) => ({ x, y: Number(json.sigma?.[i]) }));
-  const histogram = datesOnly.map((x, i) => ({ x, y: Number(json.histogram?.[i]) }));
-  const rsi14 = datesOnly.map((x, i) => ({ x, y: Number(json.rsi14?.[i]) }));
+  const roc14 = datesOnly.map((x, i) => ({ x, y: Number(json.roc14?.[i]) }));
+  const zscore14 = datesOnly.map((x, i) => ({ x, y: Number(json.zscore14?.[i]) }));
 
-  return { ema7, ema14, ema21, macd, sigma, histogram, rsi14 };
+  return { ema7, ema21, roc14, zscore14 };
 }
 
 function plotData(data) {
@@ -97,12 +94,9 @@ export default function TokenTurnoverIndicatorChart({
   showLabels = true,
 }) {
   const [ema7Data, setEma7Data] = useState([]);
-  const [ema14Data, setEma14Data] = useState([]);
   const [ema21Data, setEma21Data] = useState([]);
-  const [macdData, setMacdData] = useState([]);
-  const [sigmaData, setSigmaData] = useState([]);
-  const [histogramData, setHistogramData] = useState([]);
-  const [rsi14Data, setRsi14Data] = useState([]);
+  const [roc14Data, setRoc14Data] = useState([]);
+  const [zscore14Data, setZscore14Data] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -113,12 +107,9 @@ export default function TokenTurnoverIndicatorChart({
         setError(null);
         const pts = await fetchIndicatorData(id);
         setEma7Data(pts.ema7 || []);
-        setEma14Data(pts.ema14 || []);
         setEma21Data(pts.ema21 || []);
-        setMacdData(pts.macd || []);
-        setSigmaData(pts.sigma || []);
-        setHistogramData(pts.histogram || []);
-        setRsi14Data(pts.rsi14 || []);
+        setRoc14Data(pts.roc14 || []);
+        setZscore14Data(pts.zscore14 || []);
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -130,28 +121,21 @@ export default function TokenTurnoverIndicatorChart({
 
   // Prepare combined datasets for multi-line charts
   const emaCombined = useMemo(
-    () => combineByX({ ema7: ema7Data, ema14: ema14Data, ema21: ema21Data }),
-    [ema7Data, ema14Data, ema21Data],
-  );
-  const macdCombined = useMemo(
-    () => combineByX({ macd: macdData, sigma: sigmaData, histogram: histogramData }),
-    [macdData, sigmaData, histogramData],
+    () => combineByX({ ema7: ema7Data, ema21: ema21Data }),
+    [ema7Data, ema21Data],
   );
 
   const [yMinEma, yMaxEma] = useMemo(
-    () => plotDataMulti(emaCombined, ["ema7", "ema14", "ema21"]),
+    () => plotDataMulti(emaCombined, ["ema7", "ema21"]),
     [emaCombined],
   );
-  const [yMinMacd, yMaxMacd] = useMemo(
-    () => plotDataMulti(macdCombined, ["macd", "sigma", "histogram"]),
-    [macdCombined],
-  );
-  const [yMinRsi, yMaxRsi] = useMemo(() => plotData(rsi14Data), [rsi14Data]);
+  const [yMinRoc, yMaxRoc] = useMemo(() => plotData(roc14Data), [roc14Data]);
+  const [yMinZ, yMaxZ] = useMemo(() => plotData(zscore14Data), [zscore14Data]);
 
   return (
     <div
       role="img"
-      aria-label="Token Turnover: EMA7/EMA14/EMA21, MACD/Sigma/Histogram, RSI14"
+      aria-label="Token Turnover: EMA7/EMA21, ROC14, Z-Score14"
       style={{ width, height }}
     >
       {loading && <div style={{ padding: 12 }}>Загрузка данных…</div>}
@@ -176,7 +160,7 @@ export default function TokenTurnoverIndicatorChart({
               display: "flex",
               flexDirection: "column",
             }}
-            aria-label="График EMA 7/14/21"
+            aria-label="График EMA 7/21"
           >
             {showLabels && (
               <div
@@ -187,7 +171,7 @@ export default function TokenTurnoverIndicatorChart({
                   padding: "2px 4px",
                 }}
               >
-                EMA 7 / 14 / 21
+                EMA 7 / 21
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
@@ -213,7 +197,6 @@ export default function TokenTurnoverIndicatorChart({
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
                   <Line type="monotone" dataKey="ema7" name="EMA7" stroke="#10b981" dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="ema14" name="EMA14" stroke="#0ea5e9" dot={false} strokeWidth={2.2} />
                   <Line type="monotone" dataKey="ema21" name="EMA21" stroke="#f59e0b" dot={false} strokeWidth={2} />
                 </RLineChart>
               </ResponsiveContainer>
@@ -227,7 +210,7 @@ export default function TokenTurnoverIndicatorChart({
               display: "flex",
               flexDirection: "column",
             }}
-            aria-label="График MACD"
+            aria-label="График ROC 14"
           >
             {showLabels && (
               <div
@@ -238,15 +221,12 @@ export default function TokenTurnoverIndicatorChart({
                   padding: "2px 4px",
                 }}
               >
-                MACD / Sigma / Histogram
+                ROC 14
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <RLineChart
-                  data={macdCombined}
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                >
+                <RLineChart data={roc14Data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="x"
@@ -256,16 +236,14 @@ export default function TokenTurnoverIndicatorChart({
                   />
                   <YAxis
                     type="number"
-                    domain={[yMinMacd, yMaxMacd]}
+                    domain={[yMinRoc, yMaxRoc]}
                     tickFormatter={(v) => Number(v.toFixed(2))}
                   />
                   <Tooltip
-                    formatter={(value, name) => [Number(value).toFixed(4), name]}
+                    formatter={(value) => [Number(value).toFixed(4), "ROC14"]}
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
-                  <Line type="monotone" dataKey="macd" name="MACD" stroke="#ef4444" dot={false} strokeWidth={2.2} />
-                  <Line type="monotone" dataKey="sigma" name="Sigma" stroke="#22c55e" dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="histogram" name="Histogram" stroke="#a855f7" dot={false} strokeWidth={2} />
+                  <Line type="monotone" dataKey="y" stroke="#ef4444" dot={false} strokeWidth={2.2} />
                 </RLineChart>
               </ResponsiveContainer>
             </div>
@@ -278,7 +256,7 @@ export default function TokenTurnoverIndicatorChart({
               display: "flex",
               flexDirection: "column",
             }}
-            aria-label="График RSI 14"
+            aria-label="График Z-Score 14"
           >
             {showLabels && (
               <div
@@ -289,13 +267,13 @@ export default function TokenTurnoverIndicatorChart({
                   padding: "2px 4px",
                 }}
               >
-                RSI 14
+                Z-Score 14
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={rsi14Data}
+                  data={zscore14Data}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -307,11 +285,11 @@ export default function TokenTurnoverIndicatorChart({
                   />
                   <YAxis
                     type="number"
-                    domain={[yMinRsi, yMaxRsi]}
+                    domain={[yMinZ, yMaxZ]}
                     tickFormatter={(v) => Number(v.toFixed(2))}
                   />
                   <Tooltip
-                    formatter={(value) => [Number(value).toFixed(4), "RSI14"]}
+                    formatter={(value) => [Number(value).toFixed(4), "Z-Score14"]}
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
                   <Line
