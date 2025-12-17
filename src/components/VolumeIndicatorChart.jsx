@@ -51,6 +51,64 @@ function plotData(data) {
   return [min - pad, max + pad];
 }
 
+// Форматирование меток оси Y в кратком виде (латиница K/M/B/T)
+function formatShort(value) {
+  if (value === 0) return "0";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? -1 : 1;
+  const units = [
+    { v: 1e12, s: "T" },
+    { v: 1e9, s: "B" },
+    { v: 1e6, s: "M" },
+    { v: 1e3, s: "K" },
+  ];
+  for (const u of units) {
+    if (abs >= u.v) {
+      const num = abs / u.v;
+      let str = num.toFixed(num < 10 ? 2 : num < 100 ? 1 : 0);
+      str = str.replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, "");
+      return (sign < 0 ? "-" : "") + str + u.s;
+    }
+  }
+  let s = abs.toFixed(abs < 10 ? 2 : abs < 100 ? 1 : 0);
+  s = s.replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, "");
+  return (sign < 0 ? "-" : "") + s;
+}
+
+// Генерация «красивых» тиков по диапазону
+function niceTicks(min, max, desired = 5) {
+  if (!isFinite(min) || !isFinite(max)) return [0, 1];
+  if (min === max) {
+    const pad = Math.abs(min || 1) * 0.1 || 1;
+    min -= pad;
+    max += pad;
+  }
+  if (min > max) [min, max] = [max, min];
+  const span = max - min;
+  const step0 = span / Math.max(1, desired);
+  const pow10 = Math.pow(10, Math.floor(Math.log10(step0)));
+  const candidates = [1, 2, 2.5, 5].map((m) => m * pow10);
+  let step = candidates[0];
+  let bestDiff = Infinity;
+  for (const c of candidates) {
+    const cnt = Math.ceil(max / c) - Math.floor(min / c) + 1;
+    const diff = Math.abs(cnt - desired);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      step = c;
+    }
+  }
+  const start = Math.ceil(min / step) * step;
+  const end = Math.floor(max / step) * step;
+  const ticks = [];
+  for (let v = start; v <= end + step / 2; v += step) {
+    const vv = Math.abs(v) < 1e-12 ? 0 : v;
+    ticks.push(vv);
+  }
+  if (ticks.length === 0) return [min, max];
+  return ticks;
+}
+
 // Combine multiple series arrays (each as [{x, y}]) into a single array of rows by x
 // Example: combineByX({ a: [{x:'2025-01-01', y:1}], b: [...] }) => [{ x:'2025-01-01', a:1, b:... }]
 function combineByX(seriesMap) {
@@ -172,6 +230,10 @@ export default function VolumeIndicatorChart({
   const [yMinRoc, yMaxRoc] = useMemo(() => plotData(rocDisplay), [rocDisplay]);
   const [yMinZ, yMaxZ] = useMemo(() => plotData(zDisplay), [zDisplay]);
 
+  const yTicksEma = useMemo(() => niceTicks(yMinEma, yMaxEma, 5), [yMinEma, yMaxEma]);
+  const yTicksRoc = useMemo(() => niceTicks(yMinRoc, yMaxRoc, 5), [yMinRoc, yMaxRoc]);
+  const yTicksZ = useMemo(() => niceTicks(yMinZ, yMaxZ, 5), [yMinZ, yMaxZ]);
+
   const PeriodButtons = () => {
     const presets = [
       { label: "1W", days: 7 },
@@ -268,7 +330,8 @@ export default function VolumeIndicatorChart({
                   <YAxis
                     type="number"
                     domain={[yMinEma, yMaxEma]}
-                    tickFormatter={(v) => Number(v.toFixed(2))}
+                    ticks={yTicksEma}
+                    tickFormatter={formatShort}
                   />
                   <Tooltip
                     formatter={(value, name) => [Number(value).toFixed(4), name]}
@@ -315,7 +378,8 @@ export default function VolumeIndicatorChart({
                   <YAxis
                     type="number"
                     domain={[yMinRoc, yMaxRoc]}
-                    tickFormatter={(v) => Number(v.toFixed(2))}
+                    ticks={yTicksRoc}
+                    tickFormatter={formatShort}
                   />
                   <Tooltip
                     formatter={(value) => [Number(value).toFixed(4), "ROC14"]}
@@ -364,7 +428,8 @@ export default function VolumeIndicatorChart({
                   <YAxis
                     type="number"
                     domain={[yMinZ, yMaxZ]}
-                    tickFormatter={(v) => Number(v.toFixed(2))}
+                    ticks={yTicksZ}
+                    tickFormatter={formatShort}
                   />
                   <Tooltip
                     formatter={(value) => [Number(value).toFixed(4), "Z-Score14"]}

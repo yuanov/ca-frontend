@@ -30,6 +30,68 @@ function plotData(data) {
   return [min - pad, max + pad];
 }
 
+// Форматирование меток оси Y в кратком виде (латиница K/M/B/T)
+function formatShort(value) {
+  if (value === 0) return "0";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? -1 : 1;
+  const units = [
+    { v: 1e12, s: "T" },
+    { v: 1e9, s: "B" },
+    { v: 1e6, s: "M" },
+    { v: 1e3, s: "K" },
+  ];
+  for (const u of units) {
+    if (abs >= u.v) {
+      const num = (abs / u.v);
+      // максимум 2 знака после запятой
+      let str = num.toFixed(num < 10 ? 2 : num < 100 ? 1 : 0);
+      // убрать хвостовые нули
+      str = str.replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, "");
+      return (sign < 0 ? "-" : "") + str + u.s;
+    }
+  }
+  // Для < 1000 — до 2 знаков
+  let s = abs.toFixed(abs < 10 ? 2 : abs < 100 ? 1 : 0);
+  s = s.replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, "");
+  return (sign < 0 ? "-" : "") + s;
+}
+
+// Генерация «красивых» тиков по диапазону
+function niceTicks(min, max, desired = 5) {
+  if (!isFinite(min) || !isFinite(max)) return [0, 1];
+  if (min === max) {
+    const pad = Math.abs(min || 1) * 0.1 || 1;
+    min -= pad;
+    max += pad;
+  }
+  if (min > max) [min, max] = [max, min];
+  const span = max - min;
+  const step0 = span / Math.max(1, desired);
+  const pow10 = Math.pow(10, Math.floor(Math.log10(step0)));
+  const candidates = [1, 2, 2.5, 5].map((m) => m * pow10);
+  let step = candidates[0];
+  let bestDiff = Infinity;
+  for (const c of candidates) {
+    const cnt = Math.ceil(max / c) - Math.floor(min / c) + 1;
+    const diff = Math.abs(cnt - desired);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      step = c;
+    }
+  }
+  const start = Math.ceil(min / step) * step;
+  const end = Math.floor(max / step) * step;
+  const ticks = [];
+  for (let v = start; v <= end + step / 2; v += step) {
+    // избегаем -0
+    const vv = Math.abs(v) < 1e-12 ? 0 : v;
+    ticks.push(vv);
+  }
+  if (ticks.length === 0) return [min, max];
+  return ticks;
+}
+
 const metricToCoinsKey = {
   volume: "volume",
   mcap: "marketCap",
@@ -135,6 +197,7 @@ export default function SignalsChart({
   }, [series, enableZoom, range]);
 
   const [yMin, yMax] = useMemo(() => plotData(displaySeries), [displaySeries]);
+  const yTicks = useMemo(() => niceTicks(yMin, yMax, 5), [yMin, yMax]);
 
   // Custom dot: render only where any signal is true
   const renderDot = (props) => {
@@ -239,7 +302,13 @@ export default function SignalsChart({
               <RLineChart data={displaySeries} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="x" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
-                <YAxis domain={[yMin, yMax]} tick={{ fontSize: 12 }} width={60} />
+                <YAxis
+                  domain={[yMin, yMax]}
+                  tick={{ fontSize: 12 }}
+                  width={60}
+                  ticks={yTicks}
+                  tickFormatter={formatShort}
+                />
                 <Tooltip
                   labelFormatter={(x) => `Дата: ${x}`}
                   formatter={(value, name, props) => {
