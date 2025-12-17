@@ -60,7 +60,8 @@ export default function Home({ navigate }) {
           Перейти на страницу Token Turnover
         </button>
       </div>
-      <CoinInfoChart id={coinId} />
+      {/* Увеличиваем высоту графиков метрик на 1.5x от прежней (800 → 1200) */}
+      <CoinInfoChart id={coinId} height={1200} />
     </div>
   );
 }
