@@ -11,7 +11,7 @@ import {
 
 // Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
-// Fetch MCAP indicators data (EMA7/14/21, MACD, Sigma, Histogram, RSI14) for a given id
+// Fetch MCAP indicators data (ema21, ema50, roc21) for a given id
 async function fetchIndicatorData(id) {
   const url = `http://localhost:3000/indicators/mcap/${id}`;
   const resp = await fetch(url);
@@ -24,15 +24,11 @@ async function fetchIndicatorData(id) {
 
   const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
 
-  const ema7 = datesOnly.map((x, i) => ({ x, y: Number(json.ema7?.[i]) }));
-  const ema14 = datesOnly.map((x, i) => ({ x, y: Number(json.ema14?.[i]) }));
   const ema21 = datesOnly.map((x, i) => ({ x, y: Number(json.ema21?.[i]) }));
-  const macd = datesOnly.map((x, i) => ({ x, y: Number(json.macd?.[i]) }));
-  const sigma = datesOnly.map((x, i) => ({ x, y: Number(json.sigma?.[i]) }));
-  const histogram = datesOnly.map((x, i) => ({ x, y: Number(json.histogram?.[i]) }));
-  const rsi14 = datesOnly.map((x, i) => ({ x, y: Number(json.rsi14?.[i]) }));
+  const ema50 = datesOnly.map((x, i) => ({ x, y: Number(json.ema50?.[i]) }));
+  const roc21 = datesOnly.map((x, i) => ({ x, y: Number(json.roc21?.[i]) }));
 
-  return { ema7, ema14, ema21, macd, sigma, histogram, rsi14 };
+  return { ema21, ema50, roc21 };
 }
 
 function plotData(data) {
@@ -96,13 +92,9 @@ export default function McapIndicatorChart({
   height = 800,
   showLabels = true,
 }) {
-  const [ema7Data, setEma7Data] = useState([]);
-  const [ema14Data, setEma14Data] = useState([]);
   const [ema21Data, setEma21Data] = useState([]);
-  const [macdData, setMacdData] = useState([]);
-  const [sigmaData, setSigmaData] = useState([]);
-  const [histogramData, setHistogramData] = useState([]);
-  const [rsi14Data, setRsi14Data] = useState([]);
+  const [ema50Data, setEma50Data] = useState([]);
+  const [roc21Data, setRoc21Data] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -112,13 +104,9 @@ export default function McapIndicatorChart({
         setLoading(true);
         setError(null);
         const pts = await fetchIndicatorData(id);
-        setEma7Data(pts.ema7 || []);
-        setEma14Data(pts.ema14 || []);
         setEma21Data(pts.ema21 || []);
-        setMacdData(pts.macd || []);
-        setSigmaData(pts.sigma || []);
-        setHistogramData(pts.histogram || []);
-        setRsi14Data(pts.rsi14 || []);
+        setEma50Data(pts.ema50 || []);
+        setRoc21Data(pts.roc21 || []);
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -130,28 +118,20 @@ export default function McapIndicatorChart({
 
   // Prepare combined datasets for multi-line charts
   const emaCombined = useMemo(
-    () => combineByX({ ema7: ema7Data, ema14: ema14Data, ema21: ema21Data }),
-    [ema7Data, ema14Data, ema21Data],
-  );
-  const macdCombined = useMemo(
-    () => combineByX({ macd: macdData, sigma: sigmaData, histogram: histogramData }),
-    [macdData, sigmaData, histogramData],
+    () => combineByX({ ema21: ema21Data, ema50: ema50Data }),
+    [ema21Data, ema50Data],
   );
 
   const [yMinEma, yMaxEma] = useMemo(
-    () => plotDataMulti(emaCombined, ["ema7", "ema14", "ema21"]),
+    () => plotDataMulti(emaCombined, ["ema21", "ema50"]),
     [emaCombined],
   );
-  const [yMinMacd, yMaxMacd] = useMemo(
-    () => plotDataMulti(macdCombined, ["macd", "sigma", "histogram"]),
-    [macdCombined],
-  );
-  const [yMinRsi, yMaxRsi] = useMemo(() => plotData(rsi14Data), [rsi14Data]);
+  const [yMinRoc, yMaxRoc] = useMemo(() => plotData(roc21Data), [roc21Data]);
 
   return (
     <div
       role="img"
-      aria-label="MCAP: EMA7/EMA14/EMA21, MACD/Sigma/Histogram, RSI14"
+      aria-label="MCAP: EMA21/EMA50, ROC21"
       style={{ width, height }}
     >
       {loading && <div style={{ padding: 12 }}>Загрузка данных…</div>}
@@ -176,7 +156,7 @@ export default function McapIndicatorChart({
               display: "flex",
               flexDirection: "column",
             }}
-            aria-label="График EMA 7/14/21"
+            aria-label="График EMA 21/50"
           >
             {showLabels && (
               <div
@@ -187,7 +167,7 @@ export default function McapIndicatorChart({
                   padding: "2px 4px",
                 }}
               >
-                EMA 7 / 14 / 21
+                EMA 21 / 50
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
@@ -212,9 +192,8 @@ export default function McapIndicatorChart({
                     formatter={(value, name) => [Number(value).toFixed(4), name]}
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
-                  <Line type="monotone" dataKey="ema7" name="EMA7" stroke="#10b981" dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="ema14" name="EMA14" stroke="#0ea5e9" dot={false} strokeWidth={2.2} />
-                  <Line type="monotone" dataKey="ema21" name="EMA21" stroke="#f59e0b" dot={false} strokeWidth={2} />
+                  <Line type="monotone" dataKey="ema21" name="EMA21" stroke="#10b981" dot={false} strokeWidth={2} />
+                  <Line type="monotone" dataKey="ema50" name="EMA50" stroke="#f59e0b" dot={false} strokeWidth={2} />
                 </RLineChart>
               </ResponsiveContainer>
             </div>
@@ -227,7 +206,7 @@ export default function McapIndicatorChart({
               display: "flex",
               flexDirection: "column",
             }}
-            aria-label="График MACD"
+            aria-label="График ROC 21"
           >
             {showLabels && (
               <div
@@ -238,15 +217,12 @@ export default function McapIndicatorChart({
                   padding: "2px 4px",
                 }}
               >
-                MACD / Sigma / Histogram
+                ROC 21
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <RLineChart
-                  data={macdCombined}
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                >
+                <RLineChart data={roc21Data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="x"
@@ -256,71 +232,14 @@ export default function McapIndicatorChart({
                   />
                   <YAxis
                     type="number"
-                    domain={[yMinMacd, yMaxMacd]}
+                    domain={[yMinRoc, yMaxRoc]}
                     tickFormatter={(v) => Number(v.toFixed(2))}
                   />
                   <Tooltip
-                    formatter={(value, name) => [Number(value).toFixed(4), name]}
+                    formatter={(value) => [Number(value).toFixed(4), "ROC21"]}
                     labelFormatter={(lbl) => `Дата: ${lbl}`}
                   />
-                  <Line type="monotone" dataKey="macd" name="MACD" stroke="#ef4444" dot={false} strokeWidth={2.2} />
-                  <Line type="monotone" dataKey="sigma" name="Sigma" stroke="#22c55e" dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="histogram" name="Histogram" stroke="#a855f7" dot={false} strokeWidth={2} />
-                </RLineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-            aria-label="График RSI 14"
-          >
-            {showLabels && (
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#6366f1",
-                  padding: "2px 4px",
-                }}
-              >
-                RSI 14
-              </div>
-            )}
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <RLineChart
-                  data={rsi14Data}
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="x"
-                    type="category"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(v) => String(v).slice(5)}
-                  />
-                  <YAxis
-                    type="number"
-                    domain={[yMinRsi, yMaxRsi]}
-                    tickFormatter={(v) => Number(v.toFixed(2))}
-                  />
-                  <Tooltip
-                    formatter={(value) => [Number(value).toFixed(4), "RSI14"]}
-                    labelFormatter={(lbl) => `Дата: ${lbl}`}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="y"
-                    stroke="#6366f1"
-                    dot={false}
-                    strokeWidth={2.2}
-                  />
+                  <Line type="monotone" dataKey="y" stroke="#ef4444" dot={false} strokeWidth={2.2} />
                 </RLineChart>
               </ResponsiveContainer>
             </div>
