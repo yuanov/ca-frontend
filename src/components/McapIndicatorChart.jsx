@@ -97,16 +97,31 @@ export default function McapIndicatorChart({
   const [roc21Data, setRoc21Data] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // зум
+  const [count, setCount] = useState(60);
+  const [range, setRange] = useState({ startIndex: null, endIndex: null });
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const pts = await fetchIndicatorData(id);
-        setEma21Data(pts.ema21 || []);
-        setEma50Data(pts.ema50 || []);
-        setRoc21Data(pts.roc21 || []);
+        const url = `http://localhost:3000/indicators/mcap/${id}?count=${encodeURIComponent(count)}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (!json?.dates) throw new Error("Некорректный ответ API (ожидалось поле dates)");
+        const datesOnly = json.dates.map((d) => String(d).split("T")[0]);
+        const ema21 = datesOnly.map((x, i) => ({ x, y: Number(json.ema21?.[i]) }));
+        const ema50 = datesOnly.map((x, i) => ({ x, y: Number(json.ema50?.[i]) }));
+        const roc21 = datesOnly.map((x, i) => ({ x, y: Number(json.roc21?.[i]) }));
+
+        setEma21Data(ema21 || []);
+        setEma50Data(ema50 || []);
+        setRoc21Data(roc21 || []);
+        const n = datesOnly.length;
+        const windowSize = Math.min(count, n);
+        setRange({ startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) });
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -114,7 +129,7 @@ export default function McapIndicatorChart({
       }
     };
     load();
-  }, [id]);
+  }, [id, count]);
 
   // Prepare combined datasets for multi-line charts
   const emaCombined = useMemo(
@@ -122,11 +137,64 @@ export default function McapIndicatorChart({
     [ema21Data, ema50Data],
   );
 
+  // диапазон отображения
+  const displaySlice = useMemo(() => {
+    const n = emaCombined.length || roc21Data.length;
+    const { startIndex, endIndex } = range || {};
+    if (
+      Number.isInteger(startIndex) &&
+      Number.isInteger(endIndex) &&
+      startIndex >= 0 &&
+      endIndex >= startIndex &&
+      endIndex < n
+    ) {
+      return { start: startIndex, end: endIndex };
+    }
+    return { start: 0, end: Math.max(0, n - 1) };
+  }, [range, emaCombined, roc21Data]);
+
+  const emaDisplay = useMemo(() => emaCombined.slice(displaySlice.start, displaySlice.end + 1), [emaCombined, displaySlice]);
+  const rocDisplay = useMemo(() => roc21Data.slice(displaySlice.start, displaySlice.end + 1), [roc21Data, displaySlice]);
+
   const [yMinEma, yMaxEma] = useMemo(
-    () => plotDataMulti(emaCombined, ["ema21", "ema50"]),
-    [emaCombined],
+    () => plotDataMulti(emaDisplay, ["ema21", "ema50"]),
+    [emaDisplay],
   );
-  const [yMinRoc, yMaxRoc] = useMemo(() => plotData(roc21Data), [roc21Data]);
+  const [yMinRoc, yMaxRoc] = useMemo(() => plotData(rocDisplay), [rocDisplay]);
+
+  const PeriodButtons = () => {
+    const presets = [
+      { label: "1W", days: 7 },
+      { label: "2W", days: 14 },
+      { label: "1M", days: 30 },
+      { label: "2M", days: 60 },
+      { label: "3M", days: 90 },
+      { label: "6M", days: 180 },
+    ];
+    const onPick = (days) => {
+      if (count < days) {
+        setCount(days);
+      } else {
+        const n = emaCombined.length;
+        const start = Math.max(0, n - days);
+        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+      }
+    };
+    return (
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "#64748b" }}>Период:</span>
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => onPick(p.days)}
+            style={{ padding: "4px 8px", fontSize: 12, cursor: "pointer", border: "1px solid #cbd5e1", borderRadius: 4, background: "#fff" }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -149,6 +217,10 @@ export default function McapIndicatorChart({
             gap: 8,
           }}
         >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <PeriodButtons />
+            <div style={{ fontSize: 12, color: "#64748b" }}>count: {count}</div>
+          </div>
           <div
             style={{
               flex: 1,
@@ -173,7 +245,7 @@ export default function McapIndicatorChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={emaCombined}
+                  data={emaDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -222,7 +294,7 @@ export default function McapIndicatorChart({
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <RLineChart data={roc21Data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <RLineChart data={rocDisplay} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="x"

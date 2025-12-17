@@ -53,7 +53,7 @@ export default function Mcap({ navigate }) {
       <McapIndicatorChart id={indicatorId} />
 
       <h2 style={{ margin: "16px 0 8px" }}>Сигналы</h2>
-      <SignalsChart id={indicatorId} metric="mcap" height={400} />
+      <SignalsChart id={indicatorId} metric="mcap" height={440} enableZoom={true} />
     </div>
   );
 }

@@ -11,8 +11,8 @@ import {
 
 // Паддинг больше не нужен: API возвращает массивы одинаковой длины (по параметру count)
 
-async function fetchData(source, id) {
-  const url = `http://localhost:3000/${source}/${id}`;
+async function fetchData(source, id, count) {
+  const url = `http://localhost:3000/${source}/${id}?count=${encodeURIComponent(count)}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const json = await resp.json();
@@ -94,13 +94,16 @@ export default function CoinInfoChart({
   const [macdData, setMacdData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // зум
+  const [count, setCount] = useState(60);
+  const [range, setRange] = useState({ startIndex: null, endIndex: null });
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const pts = await fetchData(source, id);
+        const pts = await fetchData(source, id, count);
         if (source === "indicators") {
           setEma14Data(pts.ema14 || []);
           setMacdData(pts.macd || []);
@@ -118,6 +121,10 @@ export default function CoinInfoChart({
           setEma14Data([]);
           setMacdData([]);
         }
+        // установить окно отображения на последние count точек
+        const n = (source === "indicators" ? (pts.ema14?.length || pts.macd?.length || pts.price?.length) : (pts.volumes?.length || pts.marketCaps?.length || pts.tokenTurnovers?.length || pts.prices?.length)) || 0;
+        const windowSize = Math.min(count, n);
+        setRange({ startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) });
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -125,17 +132,79 @@ export default function CoinInfoChart({
       }
     };
     loadData();
-  }, [id, source]);
+  }, [id, source, count]);
 
-  const [yMinVol, yMaxVol] = useMemo(() => plotData(volData), [volData]);
-  const [yMinCap, yMaxCap] = useMemo(() => plotData(capData), [capData]);
-  const [yMinTurn, yMaxTurn] = useMemo(() => plotData(turnData), [turnData]);
-  const [yMinPrice, yMaxPrice] = useMemo(
-    () => plotData(priceData),
-    [priceData],
-  );
-  const [yMinEma, yMaxEma] = useMemo(() => plotData(ema14Data), [ema14Data]);
-  const [yMinMacd, yMaxMacd] = useMemo(() => plotData(macdData), [macdData]);
+  // вычисляем общий срез индексов для текущих данных
+  const displaySlice = useMemo(() => {
+    const n = (source === "indicators"
+      ? (ema14Data.length || macdData.length || priceData.length)
+      : (volData.length || capData.length || turnData.length || priceData.length)
+    );
+    const { startIndex, endIndex } = range || {};
+    if (
+      Number.isInteger(startIndex) &&
+      Number.isInteger(endIndex) &&
+      startIndex >= 0 &&
+      endIndex >= startIndex &&
+      endIndex < n
+    ) {
+      return { start: startIndex, end: endIndex };
+    }
+    return { start: 0, end: Math.max(0, n - 1) };
+  }, [range, source, volData.length, capData.length, turnData.length, priceData.length, ema14Data.length, macdData.length]);
+
+  // срезанные наборы
+  const volDisplay = useMemo(() => volData.slice(displaySlice.start, displaySlice.end + 1), [volData, displaySlice]);
+  const capDisplay = useMemo(() => capData.slice(displaySlice.start, displaySlice.end + 1), [capData, displaySlice]);
+  const turnDisplay = useMemo(() => turnData.slice(displaySlice.start, displaySlice.end + 1), [turnData, displaySlice]);
+  const priceDisplay = useMemo(() => priceData.slice(displaySlice.start, displaySlice.end + 1), [priceData, displaySlice]);
+  const emaDisplay = useMemo(() => ema14Data.slice(displaySlice.start, displaySlice.end + 1), [ema14Data, displaySlice]);
+  const macdDisplay = useMemo(() => macdData.slice(displaySlice.start, displaySlice.end + 1), [macdData, displaySlice]);
+
+  const [yMinVol, yMaxVol] = useMemo(() => plotData(volDisplay), [volDisplay]);
+  const [yMinCap, yMaxCap] = useMemo(() => plotData(capDisplay), [capDisplay]);
+  const [yMinTurn, yMaxTurn] = useMemo(() => plotData(turnDisplay), [turnDisplay]);
+  const [yMinPrice, yMaxPrice] = useMemo(() => plotData(priceDisplay), [priceDisplay]);
+  const [yMinEma, yMaxEma] = useMemo(() => plotData(emaDisplay), [emaDisplay]);
+  const [yMinMacd, yMaxMacd] = useMemo(() => plotData(macdDisplay), [macdDisplay]);
+
+  const PeriodButtons = () => {
+    const presets = [
+      { label: "1W", days: 7 },
+      { label: "2W", days: 14 },
+      { label: "1M", days: 30 },
+      { label: "2M", days: 60 },
+      { label: "3M", days: 90 },
+      { label: "6M", days: 180 },
+    ];
+    const onPick = (days) => {
+      if (count < days) {
+        setCount(days);
+      } else {
+        const n = (source === "indicators"
+          ? (ema14Data.length || macdData.length || priceData.length)
+          : (volData.length || capData.length || turnData.length || priceData.length)
+        );
+        const start = Math.max(0, n - days);
+        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+      }
+    };
+    return (
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "#64748b" }}>Период:</span>
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => onPick(p.days)}
+            style={{ padding: "4px 8px", fontSize: 12, cursor: "pointer", border: "1px solid #cbd5e1", borderRadius: 4, background: "#fff" }}
+          >
+            {p.label}
+          </button>
+        ))}
+        <div style={{ marginLeft: "auto", fontSize: 12, color: "#64748b" }}>count: {count}</div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -162,6 +231,7 @@ export default function CoinInfoChart({
             gap: 8,
           }}
         >
+          <PeriodButtons />
           <div
             style={{
               flex: 1,
@@ -186,7 +256,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={volData}
+                  data={volDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -243,7 +313,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={capData}
+                  data={capDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -300,7 +370,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={turnData}
+                  data={turnDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -357,7 +427,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={priceData}
+                  data={priceDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -401,6 +471,7 @@ export default function CoinInfoChart({
             gap: 8,
           }}
         >
+          <PeriodButtons />
           <div
             style={{
               flex: 1,
@@ -425,7 +496,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={ema14Data}
+                  data={emaDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -480,7 +551,7 @@ export default function CoinInfoChart({
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RLineChart
-                  data={macdData}
+                  data={macdDisplay}
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />

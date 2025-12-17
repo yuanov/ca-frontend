@@ -42,19 +42,24 @@ export default function SignalsChart({
   width = 720,
   height = 800,
   showLabels = true,
+  enableZoom = false, // включить панель выбора периода (без Brush)
 }) {
   const [series, setSeries] = useState([]); // [{x, y, signal: boolean, signals: string[] }]
   const [availableSignalNames, setAvailableSignalNames] = useState([]); // all keys present in response
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [count, setCount] = useState(180); // сколько дней запрашивать у бэкенда
+  // видимый диапазон индексов для отображаемого окна
+  const [range, setRange] = useState({ startIndex: null, endIndex: null });
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const coinsUrl = `http://localhost:3000/coins/${id}`;
-        const signalsUrl = `http://localhost:3000/signals/${metric}/${id}`;
+        const q = `?count=${encodeURIComponent(count)}`;
+        const coinsUrl = `http://localhost:3000/coins/${id}${q}`;
+        const signalsUrl = `http://localhost:3000/signals/${metric}/${id}${q}`;
 
         const [coinsResp, sigResp] = await Promise.all([
           fetch(coinsUrl),
@@ -97,6 +102,14 @@ export default function SignalsChart({
 
         setSeries(combined);
         setAvailableSignalNames(sigKeys);
+        // после загрузки, если зум включён — установить диапазон на последние 180 (или count) точек
+        if (enableZoom) {
+          const n = combined.length;
+          const windowSize = Math.min(180, n);
+          setRange({ startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) });
+        } else {
+          setRange({ startIndex: null, endIndex: null });
+        }
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -104,9 +117,24 @@ export default function SignalsChart({
       }
     };
     load();
-  }, [id, metric]);
+  }, [id, metric, count, enableZoom]);
 
-  const [yMin, yMax] = useMemo(() => plotData(series), [series]);
+  const displaySeries = useMemo(() => {
+    const { startIndex, endIndex } = range || {};
+    if (
+      enableZoom &&
+      Number.isInteger(startIndex) &&
+      Number.isInteger(endIndex) &&
+      startIndex >= 0 &&
+      endIndex >= startIndex &&
+      endIndex < series.length
+    ) {
+      return series.slice(startIndex, endIndex + 1);
+    }
+    return series;
+  }, [series, enableZoom, range]);
+
+  const [yMin, yMax] = useMemo(() => plotData(displaySeries), [displaySeries]);
 
   // Custom dot: render only where any signal is true
   const renderDot = (props) => {
@@ -130,6 +158,53 @@ export default function SignalsChart({
     "token-turnover": "Сигналы Token Turnover",
   };
 
+  const PeriodButtons = () => {
+    if (!enableZoom) return null;
+    const presets = [
+      { label: "1W", days: 7 },
+      { label: "2W", days: 14 },
+      { label: "1M", days: 30 },
+      { label: "2M", days: 60 },
+      { label: "3M", days: 90 },
+      { label: "6M", days: 180 },
+    ];
+    const onPick = (days) => {
+      // если текущего count не хватает — увеличим и перезагрузим данные
+      if (count < days) {
+        setCount(days);
+        // диапазон выставим после загрузки (в useEffect), но на всякий случай подготовим
+        const n = series.length;
+        const start = Math.max(0, n - days);
+        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+      } else {
+        const n = series.length;
+        const start = Math.max(0, n - days);
+        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+      }
+    };
+    return (
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "#64748b" }}>Период:</span>
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => onPick(p.days)}
+            style={{
+              padding: "4px 8px",
+              fontSize: 12,
+              cursor: "pointer",
+              border: "1px solid #cbd5e1",
+              borderRadius: 4,
+              background: "#fff",
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div role="img" aria-label={titleMap[metric]} style={{ width, height }}>
       {loading && <div style={{ padding: 12 }}>Загрузка данных…</div>}
@@ -137,7 +212,7 @@ export default function SignalsChart({
         <div style={{ padding: 12, color: "#b91c1c" }}>Ошибка: {error}</div>
       )}
       {!loading && !error && (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: enableZoom ? 6 : 0 }}>
           {showLabels && (
             <div
               style={{
@@ -153,9 +228,15 @@ export default function SignalsChart({
                 : ""}
             </div>
           )}
+          {enableZoom && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <PeriodButtons />
+              <div style={{ fontSize: 12, color: "#64748b" }}>count: {count}</div>
+            </div>
+          )}
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <RLineChart data={series} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <RLineChart data={displaySeries} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="x" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
                 <YAxis domain={[yMin, yMax]} tick={{ fontSize: 12 }} width={60} />
