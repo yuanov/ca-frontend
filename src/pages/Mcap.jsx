@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import McapIndicatorChart from "../components/McapIndicatorChart.jsx";
 import SignalsChart from "../components/SignalsChart.jsx";
+import TokenPicker from "../components/TokenPicker.jsx";
+import { getInitialCoinId } from "../components/coinSelection.js";
 
 export default function Mcap({ navigate }) {
-  const [pendingId, setPendingId] = useState("22691");
-  const [indicatorId, setIndicatorId] = useState(22691);
+  const [indicatorId, setIndicatorId] = useState(() => getInitialCoinId(22691));
   return (
     <div style={{ padding: 16 }}>
       <div
@@ -22,29 +23,12 @@ export default function Mcap({ navigate }) {
           ← Назад на главную
         </button>
         <div style={{ flex: 1 }} />
-        <label htmlFor="indicator-id-input">ID индикатора:</label>
-        <input
-          id="indicator-id-input"
-          type="number"
-          value={pendingId}
-          onChange={(e) => setPendingId(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const v = Number(pendingId);
-              if (!Number.isNaN(v) && v > 0) setIndicatorId(v);
-            }
-          }}
-          style={{ width: 140, padding: "6px 8px" }}
+        <TokenPicker
+          value={indicatorId}
+          onChange={(v) => setIndicatorId(v)}
+          label="ID индикатора:"
+          applyButtonLabel="Показать"
         />
-        <button
-          onClick={() => {
-            const v = Number(pendingId);
-            if (!Number.isNaN(v) && v > 0) setIndicatorId(v);
-          }}
-          style={{ padding: "6px 10px", cursor: "pointer" }}
-        >
-          Показать
-        </button>
         <span className="caption" style={{ marginLeft: 8 }}>
           Данные с локального сервера (localhost:3000/indicators/mcap)
         </span>
