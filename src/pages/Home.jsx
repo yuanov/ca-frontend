@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import CoinInfoChart from "../components/CoinInfoChart.jsx";
 import TokenPicker from "../components/TokenPicker.jsx";
+import TokenFlowsChart from "../components/TokenFlowsChart.jsx";
 import { getInitialCoinId } from "../components/coinSelection.js";
 
 export default function Home({ navigate }) {
@@ -46,6 +47,9 @@ export default function Home({ navigate }) {
       </div>
       {/* Увеличиваем высоту графиков метрик на 1.5x от прежней (800 → 1200) */}
       <CoinInfoChart id={coinId} height={1200} />
+      <div style={{ height: 24 }} />
+      {/* График потоков токена: inflows / outflows / netflows */}
+      <TokenFlowsChart coinId={coinId} height={480} count={60} />
     </div>
   );
 }
