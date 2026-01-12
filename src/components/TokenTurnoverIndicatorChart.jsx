@@ -150,6 +150,7 @@ export default function TokenTurnoverIndicatorChart({
   width = 720,
   height = 800,
   showLabels = true,
+  onRangeChange,
 }) {
   const [ema7Data, setEma7Data] = useState([]);
   const [ema21Data, setEma21Data] = useState([]);
@@ -188,7 +189,9 @@ export default function TokenTurnoverIndicatorChart({
         // выставляем окно
         const n = datesOnly.length;
         const windowSize = Math.min(count, n);
-        setRange({ startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) });
+        const newRange = { startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) };
+        setRange(newRange);
+        if (onRangeChange) onRangeChange(count, newRange);
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -249,7 +252,9 @@ export default function TokenTurnoverIndicatorChart({
       } else {
         const n = emaCombined.length;
         const start = Math.max(0, n - days);
-        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+        const newRange = { startIndex: start, endIndex: Math.max(0, n - 1) };
+        setRange(newRange);
+        if (onRangeChange) onRangeChange(days, newRange);
       }
     };
     return (

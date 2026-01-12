@@ -149,6 +149,7 @@ export default function McapIndicatorChart({
   width = 720,
   height = 800,
   showLabels = true,
+  onRangeChange,
 }) {
   const [ema21Data, setEma21Data] = useState([]);
   const [ema50Data, setEma50Data] = useState([]);
@@ -179,7 +180,9 @@ export default function McapIndicatorChart({
         setRoc21Data(roc21 || []);
         const n = datesOnly.length;
         const windowSize = Math.min(count, n);
-        setRange({ startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) });
+        const newRange = { startIndex: Math.max(0, n - windowSize), endIndex: Math.max(0, n - 1) };
+        setRange(newRange);
+        if (onRangeChange) onRangeChange(count, newRange);
       } catch (e) {
         setError(e.message || String(e));
       } finally {
@@ -238,7 +241,9 @@ export default function McapIndicatorChart({
       } else {
         const n = emaCombined.length;
         const start = Math.max(0, n - days);
-        setRange({ startIndex: start, endIndex: Math.max(0, n - 1) });
+        const newRange = { startIndex: start, endIndex: Math.max(0, n - 1) };
+        setRange(newRange);
+        if (onRangeChange) onRangeChange(days, newRange);
       }
     };
     return (

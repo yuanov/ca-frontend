@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import TokenTurnoverIndicatorChart from "../components/TokenTurnoverIndicatorChart.jsx";
+import BollingerBandsChart from "../components/BollingerBandsChart.jsx";
 import SignalsChart from "../components/SignalsChart.jsx";
 import TokenPicker from "../components/TokenPicker.jsx";
 import { getInitialCoinId } from "../components/coinSelection.js";
 
 export default function TokenTurnover({ navigate }) {
   const [indicatorId, setIndicatorId] = useState(() => getInitialCoinId(22691));
+  const [bbRange, setBbRange] = useState({ count: 60, range: { startIndex: null, endIndex: null } });
+
   return (
     <div style={{ padding: 16 }}>
       <div
@@ -34,7 +37,16 @@ export default function TokenTurnover({ navigate }) {
         </span>
       </div>
       <h2 style={{ margin: "8px 0" }}>Token Turnover</h2>
-      <TokenTurnoverIndicatorChart id={indicatorId} />
+      <TokenTurnoverIndicatorChart 
+        id={indicatorId} 
+        onRangeChange={(c, r) => setBbRange({ count: c, range: r })}
+      />
+      <BollingerBandsChart 
+        id={indicatorId} 
+        metric="token-turnover" 
+        count={bbRange.count} 
+        range={bbRange.range} 
+      />
 
       <h2 style={{ margin: "16px 0 8px" }}>Сигналы</h2>
       <SignalsChart id={indicatorId} metric="token-turnover" height={440} enableZoom={true} />
