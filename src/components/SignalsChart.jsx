@@ -98,6 +98,18 @@ const metricToCoinsKey = {
   "token-turnover": "tokenTurnover",
 };
 
+const SIGNAL_CONFIG = [
+  { key: "ema7AboveEma21", label: "EMA7 > EMA21" },
+  { key: "ema21_gt_ema50", label: "EMA21 > EMA50", mcapKey: "ema21AboveEma50" },
+  { key: "volumeAboveEma21", label: "> EMA21", mcapKey: "mcapAboveEma21", turnoverKey: "turnoverAboveEma21" },
+  { key: "roc14Above30", label: "ROC14 > 30" },
+  { key: "roc21_gt_0", label: "ROC21 > 0", mcapKey: "roc21Above0" },
+  { key: "zscore14Above2", label: "ZSCORE14 > 2" },
+  { key: "bb.isUpperBroken", label: "> upper BB" },
+  { key: "bb.isBandWidthIncreasing", label: "BB width up" },
+  { key: "sr.isResistanceBroken", label: "> resistance" },
+];
+
 export default function SignalsChart({
   id,
   metric, // 'volume' | 'mcap' | 'token-turnover'
@@ -145,15 +157,30 @@ export default function SignalsChart({
         const baseValues = coins[coinsKey];
         const base = datesOnly.map((x, i) => ({ x, y: Number(baseValues?.[i]) }));
 
-        // Collect all signal keys (non-"dates") без выравнивания — размеры совпадают
-        const sigKeys = Object.keys(sig).filter((k) => k !== "dates");
-        const byKey = sig;
-        // Build combined rows with all triggered signals on each date
+        const isMcap = metric === "mcap";
+        const isTurnover = metric === "token-turnover";
+
         const combined = base.map((row, i) => {
           const triggered = [];
-          for (const key of sigKeys) {
-            if (byKey[key]?.[i] === true) triggered.push(key);
-          }
+          
+          SIGNAL_CONFIG.forEach((conf) => {
+            let apiKey = conf.key;
+            if (isMcap && conf.mcapKey) apiKey = conf.mcapKey;
+            else if (isTurnover && conf.turnoverKey) apiKey = conf.turnoverKey;
+
+            let val = false;
+            if (apiKey.includes(".")) {
+              const [parent, child] = apiKey.split(".");
+              val = sig[parent]?.[child]?.[i] === true;
+            } else {
+              val = sig[apiKey]?.[i] === true;
+            }
+
+            if (val) {
+              triggered.push(conf.label);
+            }
+          });
+
           return {
             x: row.x,
             y: row.y,
@@ -163,7 +190,7 @@ export default function SignalsChart({
         });
 
         setSeries(combined);
-        setAvailableSignalNames(sigKeys);
+        setAvailableSignalNames(SIGNAL_CONFIG.map(c => c.label));
         // после загрузки, если зум включён — установить диапазон на последние 180 (или count) точек
         if (enableZoom) {
           const n = combined.length;

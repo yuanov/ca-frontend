@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import VolumeIndicatorChart from "../components/VolumeIndicatorChart.jsx";
 import BollingerBandsChart from "../components/BollingerBandsChart.jsx";
+import SupportResistanceChart from "../components/SupportResistanceChart.jsx";
 import SignalsChart from "../components/SignalsChart.jsx";
 import TokenPicker from "../components/TokenPicker.jsx";
 import { getInitialCoinId } from "../components/coinSelection.js";
@@ -42,6 +43,12 @@ export default function Volume({ navigate }) {
         onRangeChange={(c, r) => setBbRange({ count: c, range: r })}
       />
       <BollingerBandsChart 
+        id={indicatorId} 
+        metric="volume" 
+        count={bbRange.count} 
+        range={bbRange.range} 
+      />
+      <SupportResistanceChart 
         id={indicatorId} 
         metric="volume" 
         count={bbRange.count} 

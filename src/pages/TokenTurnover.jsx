@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import TokenTurnoverIndicatorChart from "../components/TokenTurnoverIndicatorChart.jsx";
 import BollingerBandsChart from "../components/BollingerBandsChart.jsx";
+import SupportResistanceChart from "../components/SupportResistanceChart.jsx";
 import SignalsChart from "../components/SignalsChart.jsx";
 import TokenPicker from "../components/TokenPicker.jsx";
 import { getInitialCoinId } from "../components/coinSelection.js";
@@ -42,6 +43,12 @@ export default function TokenTurnover({ navigate }) {
         onRangeChange={(c, r) => setBbRange({ count: c, range: r })}
       />
       <BollingerBandsChart 
+        id={indicatorId} 
+        metric="token-turnover" 
+        count={bbRange.count} 
+        range={bbRange.range} 
+      />
+      <SupportResistanceChart 
         id={indicatorId} 
         metric="token-turnover" 
         count={bbRange.count} 
